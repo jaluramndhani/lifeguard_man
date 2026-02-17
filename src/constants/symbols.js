@@ -1,6 +1,6 @@
 // ============================================
-// LIFEGUARD WOMAN SLOT MACHINE - SYMBOL DEFINITIONS
-// Same system as Witch/Diving: 11 symbols + 6 multipliers
+// LIFEGUARD MAN SLOT MACHINE - SYMBOL DEFINITIONS
+// Same system as Witch/Diving: 10 symbols + 6 multipliers
 // Grid: 6 columns × 5 rows = 30 cells
 // Win: 8+ matching symbols (scatter pay)
 // ============================================
@@ -10,18 +10,17 @@ import lifeRingImg from '../assets/images/symbols/lifeRing.png';
 import swimsuitImg from '../assets/images/symbols/swimsuit.png';
 import megaphoneImg from '../assets/images/symbols/megaphone.png';
 import footballImg from '../assets/images/symbols/football.png';
-import lifeguardGirlImg from '../assets/images/symbols/lifeguardGirl.png';
+import lifeguardBoyImg from '../assets/images/symbols/lifeguardBoy.png';
 import firstAidKitImg from '../assets/images/symbols/firstAidKit.png';
 import binocularsImg from '../assets/images/symbols/binoculars.png';
 import whistleImg from '../assets/images/symbols/whistle.png';
-import coolerImg from '../assets/images/symbols/cooler.png';
 import umbrellaImg from '../assets/images/symbols/umbrella.png';
 import lifeguardTowerImg from '../assets/images/symbols/lifeguardTower.png';
 
-// 11 Regular symbols with values (identical tier system)
+// 10 Regular symbols with values (identical tier system)
 export const SYMBOLS = [
   { id: 'lifeguardTower', src: lifeguardTowerImg, value: 500, name: 'Lifeguard Tower' },
-  { id: 'lifeguardGirl', src: lifeguardGirlImg, value: 400, name: 'Lifeguard Girl' },
+  { id: 'lifeguardBoy', src: lifeguardBoyImg, value: 400, name: 'Lifeguard Boy' },
   { id: 'lifeRing', src: lifeRingImg, value: 300, name: 'Life Ring' },
   { id: 'firstAidKit', src: firstAidKitImg, value: 250, name: 'First Aid Kit' },
   { id: 'swimsuit', src: swimsuitImg, value: 200, name: 'Swimsuit' },
@@ -29,7 +28,6 @@ export const SYMBOLS = [
   { id: 'umbrella', src: umbrellaImg, value: 100, name: 'Umbrella' },
   { id: 'megaphone', src: megaphoneImg, value: 80, name: 'Megaphone' },
   { id: 'football', src: footballImg, value: 60, name: 'Football' },
-  { id: 'cooler', src: coolerImg, value: 40, name: 'Cooler' },
   { id: 'whistle', src: whistleImg, value: 20, name: 'Whistle' },
 ];
 

@@ -1,5 +1,5 @@
 // ============================================
-// LIFEGUARD WOMAN SLOT MACHINE - ASSET IMPORTS
+// LIFEGUARD MAN SLOT MACHINE - ASSET IMPORTS
 // Downloaded from Figma design (local files)
 // ============================================
 

@@ -26,6 +26,7 @@ export default function App() {
   const [grid, setGrid] = useState(() => Array.from({ length: TOTAL_CELLS }, () => getRandomSymbol()));
   const [isSpinning, setIsSpinning] = useState(false);
   const [stoppedCols, setStoppedCols] = useState(GRID_COLS);
+  const [landedCols, setLandedCols] = useState(new Set());
   const [winAmount, setWinAmount] = useState(0);
   const [accumulatedWin, setAccumulatedWin] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -46,6 +47,8 @@ export default function App() {
   const [winningCells, setWinningCells] = useState([]);
   const [cascadeStep, setCascadeStep] = useState(0);
   const [winStage, setWinStage] = useState('idle');
+  const [lightningKey, setLightningKey] = useState(0);
+  const [showLightning, setShowLightning] = useState(false);
   const [displayCoins, setDisplayCoins] = useState(0);
   const [displayWin, setDisplayWin] = useState(0);
   const [displayMultiplier, setDisplayMultiplier] = useState(0);
@@ -96,6 +99,7 @@ export default function App() {
   const hasUnlockedSounds = useRef(false);
   const chargeInterval = useRef(null);
   const drainInterval = useRef(null);
+  const landedCleanupTimers = useRef([]);
 
   // ==================== INIT ====================
   const fetchUserBalance = (user) => {
@@ -639,6 +643,10 @@ export default function App() {
 
     setFinalGridResult(finalGrid);
     setStoppedCols(0);
+    setLandedCols(new Set());
+
+    landedCleanupTimers.current.forEach(tid => clearTimeout(tid));
+    landedCleanupTimers.current = [];
 
     const fast = isBonusMode;
     const spinDuration = fast ? 300 : 600;
@@ -648,12 +656,19 @@ export default function App() {
       const delay = spinDuration + colDelays.slice(0, i + 1).reduce((a, b) => a + b, 0);
       setTimeout(() => {
         setStoppedCols(p => p + 1);
+        setLandedCols(prev => new Set([...prev, i]));
         playSound(reelStopSound);
         setGrid(prev => {
           const g = [...prev];
           for (let row = 0; row < GRID_ROWS; row++) g[row * GRID_COLS + i] = finalGrid[row * GRID_COLS + i];
           return g;
         });
+        const tid = setTimeout(() => setLandedCols(prev => {
+          const next = new Set(prev);
+          next.delete(i);
+          return next;
+        }), 500);
+        landedCleanupTimers.current.push(tid);
       }, delay);
     }
 
@@ -711,14 +726,21 @@ export default function App() {
 
       setWinStage('highlight');
 
+      setShowLightning(true);
+      setLightningKey(k => k + 1);
+      setTimeout(() => setLightningKey(k => k + 1), 200);
+      setTimeout(() => setLightningKey(k => k + 1), 400);
+      setTimeout(() => setShowLightning(false), 600);
+
+      const highlightDur = fast ? 750 : 1500;
+
       setTimeout(() => {
           setWinStage('reveal');
           for (let i = 0; i < Math.min(newWinCells.length, 3); i++)
           setTimeout(() => playSymbolFlipSound(i), i * (fast ? 75 : 150));
-      }, fast ? 250 : 500);
+      }, highlightDur);
 
-      const revealDur = fast ? 800 : 2000;
-      const coinsDelay = revealDur; 
+      const coinsDelay = highlightDur + (fast ? 400 : 1000); 
 
       if (activeMult > 1) {
           setTimeout(() => {
@@ -883,6 +905,9 @@ export default function App() {
           <canvas ref={canvasRef} className="fixed inset-0 z-[9999] pointer-events-none w-full h-full" style={{ touchAction: 'none' }} />
         )}
 
+        {/* Lightning flash overlay */}
+        {showLightning && <div key={lightningKey} className="lightning-overlay flash" />}
+
         {/* Game Frame */}
         <div className="relative overflow-hidden" style={{ width: 'min(100vw, calc(100vh * 1336 / 753))', height: 'min(100vh, calc(100vw * 753 / 1336))' }}>
           {/* Background */}
@@ -941,7 +966,7 @@ export default function App() {
                 <p>MULTIPLIER</p>
               </div>
               <p className={`font-inter font-black text-[#fff200] mt-[1vh] ${multiplierFlyingDown ? 'animate-multiplier-fly-to-win-landscape' : (multiplierFadingIn ? 'animate-multiplier-fade-in' : (multiplierPopUp ? 'animate-multiplier-pop-up' : (displayMultiplier > 0 ? 'animate-multiplier-shimmer' : '')))}`}
-                style={{ fontSize: 'clamp(20px, 4vw, 40px)', textShadow: '0 4px 4px rgba(0,0,0,0.5)', '--target-x': '42vw', '--target-y': '3vh' }}>
+                style={{ fontSize: 'clamp(20px, 4vw, 40px)', textShadow: '0 4px 4px rgba(0,0,0,0.5)', '--target-x': '35vw', '--target-y': '-10vh' }}>
                 {displayMultiplier > 0 ? `${displayMultiplier}x` : '0x'}
               </p>
             </div>
@@ -987,7 +1012,7 @@ export default function App() {
                     </div>
 
                     {/* Slot Reels */}
-                    <div className="relative" style={{ width: '622px' }}>
+                    <div className={`relative ${winStage === 'highlight' ? 'animate-shake' : ''}`} style={{ width: '622px' }}>
                       <div className="flex gap-[12px]" style={{ height: '500px', padding: '10px' }}>
                         {Array.from({ length: GRID_COLS }).map((_, colIndex) => {
                           const isColSpinning = isSpinning && colIndex >= stoppedCols;
@@ -1001,73 +1026,71 @@ export default function App() {
 
                           return (
                             <div key={`col-${colIndex}`} className={`col-${colIndex} reel-col`}>
-                              {isColSpinning ? (
-                                <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%' }}>
-                                  {spinStrip.map((sym, i) => (
-                                    <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '88px' }}>
-                                      <img src={sym.src} alt={sym.id} />
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="reel-strip" style={{ position: 'relative', top: '0' }}>
-                                  {columnSymbols.map(({ symbol, index }, rowIndex) => {
-                                    const isWinning = winningCells.includes(index);
-                                    const isMultiplierCell = symbol.isMultiplier;
-                                    const isAnimating = isWinning || (isMultiplierCell && winStage !== 'idle');
-                                    const winIndex = isWinning ? winningCells.indexOf(index) : (isMultiplierCell ? winningCells.length : -1);
-                                    const staggerDelay = winIndex >= 0 ? `${winIndex * 0.1}s` : '0s';
-                                    const isMultiplierFlying = flyingGridMultipliers.some(m => m.cellIndex === index);
-                                    const isMultiplierCollected = collectedMultiplierCells.includes(index);
+                              <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%', display: isColSpinning ? '' : 'none' }}>
+                                {spinStrip.map((sym, i) => (
+                                  <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '88px' }}>
+                                    <img src={sym.src} alt={sym.id} />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="reel-strip" style={{ position: 'relative', top: '0', display: isColSpinning ? 'none' : '' }}>
+                                {columnSymbols.map(({ symbol, index }, rowIndex) => {
+                                  const isWinning = winningCells.includes(index);
+                                  const isMultiplierCell = symbol.isMultiplier;
+                                  const isAnimating = isWinning || (isMultiplierCell && winStage !== 'idle');
+                                  const winIndex = isWinning ? winningCells.indexOf(index) : (isMultiplierCell ? winningCells.length : -1);
+                                  const staggerDelay = winIndex >= 0 ? `${winIndex * 0.1}s` : '0s';
+                                  const isMultiplierFlying = flyingGridMultipliers.some(m => m.cellIndex === index);
+                                  const isMultiplierCollected = collectedMultiplierCells.includes(index);
 
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`reel-sym ${isSpinning ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
-                                        style={{
-                                          height: '88px',
-                                          marginBottom: rowIndex < GRID_ROWS - 1 ? '15px' : '0',
-                                          animationDelay: isSpinning ? `${rowIndex * 0.07}s` : '0s',
-                                        }}
-                                      >
-                                        {isAnimating ? (
-                                          <div className="relative w-full h-full flex items-center justify-center">
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`reel-sym ${landedCols.has(colIndex) ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
+                                      style={{
+                                        height: '88px',
+                                        marginBottom: rowIndex < GRID_ROWS - 1 ? '15px' : '0',
+                                        animationDelay: landedCols.has(colIndex) ? `${rowIndex * 0.07}s` : '0s',
+                                      }}
+                                    >
+                                      {isAnimating ? (
+                                        <div className="relative w-full h-full flex items-center justify-center">
+                                          <div
+                                            className={`absolute inset-0 flex items-center justify-center ${winStage === 'highlight' ? 'animate-win-pulse' : ''} ${(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') ? 'animate-symbol-out' : ''}`}
+                                            style={{ animationDelay: (winStage === 'reveal' || winStage === 'collect') ? staggerDelay : '0s' }}
+                                          >
+                                            <img src={symbol.src} alt={symbol.id} className="w-full h-full object-contain" />
+                                          </div>
+                                          {winStage === 'highlight' && <div className="symbol-lightning" />}
+                                          {(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') && (
                                             <div
-                                              className={`absolute inset-0 flex items-center justify-center ${winStage === 'highlight' ? 'animate-win-pulse' : ''} ${(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') ? 'animate-symbol-out' : ''}`}
-                                              style={{ animationDelay: (winStage === 'reveal' || winStage === 'collect') ? staggerDelay : '0s' }}
+                                              className={`absolute inset-0 flex items-center justify-center z-10 ${winStage === 'reveal' ? 'animate-coin-in' : ''} ${winStage === 'collect' && !isMultiplierCell ? 'animate-fly-up' : ''}`}
+                                              style={{ animationDelay: staggerDelay }}
                                             >
-                                              <img src={symbol.src} alt={symbol.id} className="w-full h-full object-contain" />
+                                              <span className="symbol-value" style={{ fontSize: '24px' }}>
+                                                {symbol.isMultiplier ? `${symbol.multiplier}x` : `+${symbol.value}`}
+                                              </span>
                                             </div>
-                                            {(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') && (
-                                              <div
-                                                className={`absolute inset-0 flex items-center justify-center z-10 ${winStage === 'reveal' ? 'animate-coin-in' : ''} ${winStage === 'collect' && !isMultiplierCell ? 'animate-fly-up' : ''}`}
-                                                style={{ animationDelay: staggerDelay }}
-                                              >
-                                                <span className="symbol-value" style={{ fontSize: '24px' }}>
-                                                  {symbol.isMultiplier ? `${symbol.multiplier}x` : `+${symbol.value}`}
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        ) : (
-                                          <img
-                                            src={symbol.src}
-                                            alt={symbol.id}
-                                            className={`${symbol.dropRows > 0 ? 'animate-cascade-drop' : ''}`}
-                                            style={symbol.dropRows > 0 ? { '--drop-rows': symbol.dropRows } : {}}
-                                          />
-                                        )}
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <img
+                                          src={symbol.src}
+                                          alt={symbol.id}
+                                          className={`${symbol.dropRows > 0 ? 'animate-cascade-drop' : ''}`}
+                                          style={symbol.dropRows > 0 ? { '--drop-rows': symbol.dropRows } : {}}
+                                        />
+                                      )}
 
-                                        {symbol.isMultiplier && !isMultiplierCollected && !isMultiplierFlying && (
-                                          <div className="absolute -top-1 -right-1 bg-red-700 text-yellow-300 text-xs font-black px-1 rounded shadow-lg border border-red-400">
-                                            {symbol.multiplier}x
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                      {symbol.isMultiplier && !isMultiplierCollected && !isMultiplierFlying && (
+                                        <div className="absolute -top-1 -right-1 bg-red-700 text-yellow-300 text-xs font-black px-1 rounded shadow-lg border border-red-400">
+                                          {symbol.multiplier}x
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           );
                         })}
@@ -1237,6 +1260,9 @@ export default function App() {
         <canvas ref={canvasRef} className="fixed inset-0 z-[9999] pointer-events-none w-full h-full" style={{ touchAction: 'none' }} />
       )}
 
+      {/* Lightning flash overlay */}
+      {showLightning && <div key={lightningKey} className="lightning-overlay flash" />}
+
       <div
         style={{
           width: 751 * scale,
@@ -1365,7 +1391,7 @@ export default function App() {
           </div>
 
           {/* ===== SLOT REELS (6 columns x 5 rows) ===== */}
-          <div className="relative" style={{ width: '622px' }}>
+          <div className={`relative ${winStage === 'highlight' ? 'animate-shake' : ''}`} style={{ width: '622px' }}>
             <div className="flex gap-[7px]" style={{ height: '460px', padding: '10px' }}>
               {Array.from({ length: GRID_COLS }).map((_, colIndex) => {
                 const isColSpinning = isSpinning && colIndex >= stoppedCols;
@@ -1381,74 +1407,72 @@ export default function App() {
 
                 return (
                   <div key={`col-${colIndex}`} className={`col-${colIndex} reel-col`}>
-                    {isColSpinning ? (
-                      <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%' }}>
-                        {spinStrip.map((sym, i) => (
-                          <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '80px' }}>
-                            <img src={sym.src} alt={sym.id} />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="reel-strip" style={{ position: 'relative', top: '0' }}>
-                        {columnSymbols.map(({ symbol, index }, rowIndex) => {
-                          const isWinning = winningCells.includes(index);
-                          const isMultiplierCell = symbol.isMultiplier;
-                          const isAnimating = isWinning || (isMultiplierCell && winStage !== 'idle');
-                          const winIndex = isWinning ? winningCells.indexOf(index) : (isMultiplierCell ? winningCells.length : -1);
-                          const staggerDelay = winIndex >= 0 ? `${winIndex * 0.1}s` : '0s';
-                          const isMultiplierFlying = flyingGridMultipliers.some(m => m.cellIndex === index);
-                          const isMultiplierCollected = collectedMultiplierCells.includes(index);
+                    <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%', display: isColSpinning ? '' : 'none' }}>
+                      {spinStrip.map((sym, i) => (
+                        <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '80px' }}>
+                          <img src={sym.src} alt={sym.id} />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="reel-strip" style={{ position: 'relative', top: '0', display: isColSpinning ? 'none' : '' }}>
+                      {columnSymbols.map(({ symbol, index }, rowIndex) => {
+                        const isWinning = winningCells.includes(index);
+                        const isMultiplierCell = symbol.isMultiplier;
+                        const isAnimating = isWinning || (isMultiplierCell && winStage !== 'idle');
+                        const winIndex = isWinning ? winningCells.indexOf(index) : (isMultiplierCell ? winningCells.length : -1);
+                        const staggerDelay = winIndex >= 0 ? `${winIndex * 0.1}s` : '0s';
+                        const isMultiplierFlying = flyingGridMultipliers.some(m => m.cellIndex === index);
+                        const isMultiplierCollected = collectedMultiplierCells.includes(index);
 
-                          return (
-                            <div
-                              key={index}
-                              className={`reel-sym ${isSpinning ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
-                              style={{
-                                height: '80px',
-                                marginBottom: rowIndex < GRID_ROWS - 1 ? '8px' : '0',
-                                animationDelay: isSpinning ? `${rowIndex * 0.07}s` : '0s',
-                              }}
-                            >
-                              {isAnimating ? (
-                                <div className="relative w-full h-full flex items-center justify-center">
+                        return (
+                          <div
+                            key={index}
+                            className={`reel-sym ${landedCols.has(colIndex) ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
+                            style={{
+                              height: '80px',
+                              marginBottom: rowIndex < GRID_ROWS - 1 ? '8px' : '0',
+                              animationDelay: landedCols.has(colIndex) ? `${rowIndex * 0.07}s` : '0s',
+                            }}
+                          >
+                            {isAnimating ? (
+                              <div className="relative w-full h-full flex items-center justify-center">
+                                <div
+                                  className={`absolute inset-0 flex items-center justify-center ${winStage === 'highlight' ? 'animate-win-pulse' : ''} ${(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') ? 'animate-symbol-out' : ''}`}
+                                  style={{ animationDelay: (winStage === 'reveal' || winStage === 'collect') ? staggerDelay : '0s' }}
+                                >
+                                  <img src={symbol.src} alt={symbol.id} className="w-full h-full object-contain" />
+                                </div>
+                                {winStage === 'highlight' && <div className="symbol-lightning" />}
+                                {(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') && (
                                   <div
-                                    className={`absolute inset-0 flex items-center justify-center ${winStage === 'highlight' ? 'animate-win-pulse' : ''} ${(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') ? 'animate-symbol-out' : ''}`}
-                                    style={{ animationDelay: (winStage === 'reveal' || winStage === 'collect') ? staggerDelay : '0s' }}
+                                    className={`absolute inset-0 flex items-center justify-center z-10 ${winStage === 'reveal' ? 'animate-coin-in' : ''} ${winStage === 'collect' && !isMultiplierCell ? 'animate-fly-up' : ''}`}
+                                    style={{ animationDelay: staggerDelay }}
                                   >
-                                    <img src={symbol.src} alt={symbol.id} className="w-full h-full object-contain" />
+                                    <span className="symbol-value" style={{ fontSize: '24px' }}>
+                                      {symbol.isMultiplier ? `${symbol.multiplier}x` : `+${symbol.value}`}
+                                    </span>
                                   </div>
-                                  {(winStage === 'reveal' || winStage === 'collect' || winStage === 'completed') && (
-                                    <div
-                                      className={`absolute inset-0 flex items-center justify-center z-10 ${winStage === 'reveal' ? 'animate-coin-in' : ''} ${winStage === 'collect' && !isMultiplierCell ? 'animate-fly-up' : ''}`}
-                                      style={{ animationDelay: staggerDelay }}
-                                    >
-                                      <span className="symbol-value" style={{ fontSize: '24px' }}>
-                                        {symbol.isMultiplier ? `${symbol.multiplier}x` : `+${symbol.value}`}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <img
-                                  src={symbol.src}
-                                  alt={symbol.id}
-                                  className={`${symbol.dropRows > 0 ? 'animate-cascade-drop' : ''}`}
-                                  style={symbol.dropRows > 0 ? { '--drop-rows': symbol.dropRows } : {}}
-                                />
-                              )}
+                                )}
+                              </div>
+                            ) : (
+                              <img
+                                src={symbol.src}
+                                alt={symbol.id}
+                                className={`${symbol.dropRows > 0 ? 'animate-cascade-drop' : ''}`}
+                                style={symbol.dropRows > 0 ? { '--drop-rows': symbol.dropRows } : {}}
+                              />
+                            )}
 
-                              {/* Multiplier badge */}
-                              {symbol.isMultiplier && !isMultiplierCollected && !isMultiplierFlying && (
-                                <div className="absolute -top-1 -right-1 bg-red-700 text-yellow-300 text-xs font-black px-1 rounded shadow-lg border border-red-400">
-                                  {symbol.multiplier}x
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            {/* Multiplier badge */}
+                            {symbol.isMultiplier && !isMultiplierCollected && !isMultiplierFlying && (
+                              <div className="absolute -top-1 -right-1 bg-red-700 text-yellow-300 text-xs font-black px-1 rounded shadow-lg border border-red-400">
+                                {symbol.multiplier}x
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -1580,7 +1604,7 @@ export default function App() {
 
         {/* ===== FLYING COINS (to balance) ===== */}
         {flyingCoins.map(coin => (
-          <div key={coin.id} className="flying-coin animate-coin-win-to-balance" style={{ left: '380px', top: '300px', animationDelay: `${coin.delay}ms` }}>
+          <div key={coin.id} className="flying-coin animate-coin-win-to-balance" style={{ left: '380px', top: '286px', animationDelay: `${coin.delay}ms` }}>
             <div className="w-full h-full rounded-full bg-yellow-400 border-2 border-yellow-600 shadow-lg" />
           </div>
         ))}

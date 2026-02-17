@@ -82,6 +82,7 @@ img {
 .reel-strip.is-spinning .reel-sym img {
   filter: blur(1.5px);
   opacity: 0.7;
+  transition: filter 0.15s, opacity 0.15s;
 }
 
 .col-0 .reel-strip.is-spinning { --spin-speed: 0.28s; }
@@ -118,7 +119,7 @@ img {
 }
 
 .reel-sym-land {
-  animation: symbolDrop 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: symbolDrop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform, opacity, filter;
 }
 
@@ -171,25 +172,27 @@ img {
    ============================================ */
 
 @keyframes winPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+  50% { transform: scale(1.25); filter: drop-shadow(0 0 18px rgba(0,255,100,0.9)) drop-shadow(0 0 40px rgba(0,255,100,0.5)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
 }
 
 .animate-win-pulse {
-  animation: winPulse 0.8s ease-in-out infinite;
+  animation: winPulse 0.5s ease-in-out 3;
   z-index: 50;
-  will-change: transform;
+  will-change: transform, filter;
   transform: translateZ(0);
 }
 
 @keyframes symbolOut {
-  0% { transform: scale(1) translateZ(0); opacity: 1; }
-  100% { transform: scale(0) translateZ(0); opacity: 0; }
+  0% { transform: scale(1) translateZ(0); opacity: 1; filter: drop-shadow(0 0 0px transparent); }
+  40% { transform: scale(1.5) translateZ(0); opacity: 1; filter: drop-shadow(0 0 25px rgba(255,255,255,0.9)) drop-shadow(0 0 50px rgba(0,255,100,0.7)); }
+  100% { transform: scale(0) translateZ(0); opacity: 0; filter: drop-shadow(0 0 0px transparent); }
 }
 
 .animate-symbol-out {
-  animation: symbolOut 0.3s ease-out forwards;
-  will-change: transform, opacity;
+  animation: symbolOut 0.4s ease-out forwards;
+  will-change: transform, opacity, filter;
 }
 
 @keyframes coinIn {
@@ -222,6 +225,57 @@ img {
   font-size: 28px;
   z-index: 100;
   pointer-events: none;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-4px) rotate(-0.5deg); }
+  20% { transform: translateX(4px) rotate(0.5deg); }
+  30% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  50% { transform: translateX(-2px) rotate(-0.3deg); }
+  60% { transform: translateX(2px) rotate(0.3deg); }
+  70% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+  90% { transform: translateX(-1px); }
+}
+.animate-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+.lightning-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.7) 0%, rgba(200,220,255,0.3) 50%, transparent 80%);
+  opacity: 0;
+}
+.lightning-overlay.flash {
+  animation: lightningFlash 0.15s ease-out forwards;
+}
+@keyframes lightningFlash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.symbol-lightning {
+  position: absolute;
+  inset: -8px;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 60;
+  animation: symbolFlash 0.5s ease-in-out 3;
+}
+@keyframes symbolFlash {
+  0%, 100% { box-shadow: none; }
+  50% {
+    box-shadow:
+      0 0 15px 5px rgba(0,255,100,0.6),
+      0 0 30px 10px rgba(0,255,100,0.3),
+      inset 0 0 15px 5px rgba(0,255,100,0.2);
+  }
 }
 
 @keyframes popHighlight {
@@ -403,9 +457,9 @@ img {
 
 @keyframes multiplierFlyToWin {
   0% { transform: translateX(-50%) scale(1); opacity: 1; }
-  30% { transform: translateX(-50%) translate(100px, 50px) scale(1.3); opacity: 1; }
-  70% { transform: translateX(-50%) translate(280px, 150px) scale(1.1); opacity: 1; }
-  100% { transform: translateX(-50%) translate(300px, 180px) scale(0.8); opacity: 0; }
+  30% { transform: translateX(-50%) translate(79px, 34px) scale(1.3); opacity: 1; }
+  70% { transform: translateX(-50%) translate(185px, 78px) scale(1.1); opacity: 1; }
+  100% { transform: translateX(-50%) translate(264px, 112px) scale(0.8); opacity: 0; }
 }
 
 .animate-multiplier-fly-to-win {
@@ -467,21 +521,12 @@ img {
 
 @keyframes coinWinToBalance {
   0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
-  100% { transform: translate3d(-250px, -380px, 0) scale(0.4); opacity: 0; }
+  40% { transform: translate3d(-100px, -100px, 0) scale(1.2); opacity: 1; }
+  100% { transform: translate3d(-265px, -247px, 0) scale(0.4); opacity: 0; }
 }
 
 .animate-coin-win-to-balance {
   animation: coinWinToBalance 0.5s ease-out forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes coinWinToBalanceLandscape {
-  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
-  100% { transform: translate3d(-24vw, -9vh, 0) scale(0.4); opacity: 0; }
-}
-
-.animate-coin-win-to-balance-landscape {
-  animation: coinWinToBalanceLandscape 0.6s ease-out forwards;
   will-change: transform, opacity;
 }
 
@@ -524,8 +569,8 @@ img {
 
 @keyframes coinWinToBalanceLandscape {
   0% { transform: translate(0, 0) scale(1); opacity: 1; }
-  50% { transform: translate(-15vw, -3vh) scale(1.2); opacity: 1; filter: brightness(1.5); }
-  100% { transform: translate(-30vw, -6vh) scale(0.5); opacity: 0; }
+  40% { transform: translate(-12vw, -4vh) scale(1.2); opacity: 1; filter: brightness(1.5); }
+  100% { transform: translate(-30vw, -10vh) scale(0.5); opacity: 0; }
 }
 
 .animate-coin-win-to-balance-landscape {
