@@ -1013,7 +1013,7 @@ export default function App() {
 
                     {/* Slot Reels */}
                     <div className={`relative ${winStage === 'highlight' ? 'animate-shake' : ''}`} style={{ width: '622px' }}>
-                      <div className="flex gap-[12px]" style={{ height: '500px', padding: '10px' }}>
+                      <div className="reel-container" style={{ height: '500px', '--sym-h': '88px', '--sym-gap': '15px', '--col-gap': '12px' }}>
                         {Array.from({ length: GRID_COLS }).map((_, colIndex) => {
                           const isColSpinning = isSpinning && colIndex >= stoppedCols;
                           const columnSymbols = Array.from({ length: GRID_ROWS }).map((_, rowIndex) => {
@@ -1028,7 +1028,7 @@ export default function App() {
                             <div key={`col-${colIndex}`} className={`col-${colIndex} reel-col`}>
                               <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%', display: isColSpinning ? '' : 'none' }}>
                                 {spinStrip.map((sym, i) => (
-                                  <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '88px' }}>
+                                  <div key={`spin-${colIndex}-${i}`} className="reel-sym">
                                     <img src={sym.src} alt={sym.id} />
                                   </div>
                                 ))}
@@ -1048,8 +1048,6 @@ export default function App() {
                                       key={index}
                                       className={`reel-sym ${landedCols.has(colIndex) ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
                                       style={{
-                                        height: '88px',
-                                        marginBottom: rowIndex < GRID_ROWS - 1 ? '15px' : '0',
                                         animationDelay: landedCols.has(colIndex) ? `${rowIndex * 0.07}s` : '0s',
                                       }}
                                     >
@@ -1392,7 +1390,7 @@ export default function App() {
 
           {/* ===== SLOT REELS (6 columns x 5 rows) ===== */}
           <div className={`relative ${winStage === 'highlight' ? 'animate-shake' : ''}`} style={{ width: '622px' }}>
-            <div className="flex gap-[7px]" style={{ height: '460px', padding: '10px' }}>
+            <div className="reel-container" style={{ height: '460px', '--sym-h': '80px', '--sym-gap': '8px', '--col-gap': '7px' }}>
               {Array.from({ length: GRID_COLS }).map((_, colIndex) => {
                 const isColSpinning = isSpinning && colIndex >= stoppedCols;
 
@@ -1409,7 +1407,7 @@ export default function App() {
                   <div key={`col-${colIndex}`} className={`col-${colIndex} reel-col`}>
                     <div className="reel-strip is-spinning" style={{ '--spin-start': '-75%', display: isColSpinning ? '' : 'none' }}>
                       {spinStrip.map((sym, i) => (
-                        <div key={`spin-${colIndex}-${i}`} className="reel-sym" style={{ height: '80px' }}>
+                        <div key={`spin-${colIndex}-${i}`} className="reel-sym">
                           <img src={sym.src} alt={sym.id} />
                         </div>
                       ))}
@@ -1429,8 +1427,6 @@ export default function App() {
                             key={index}
                             className={`reel-sym ${landedCols.has(colIndex) ? 'reel-sym-land' : ''} ${isAnimating ? 'z-20' : 'z-0'} ${(isMultiplierFlying || isMultiplierCollected) ? 'opacity-0' : ''}`}
                             style={{
-                              height: '80px',
-                              marginBottom: rowIndex < GRID_ROWS - 1 ? '8px' : '0',
                               animationDelay: landedCols.has(colIndex) ? `${rowIndex * 0.07}s` : '0s',
                             }}
                           >

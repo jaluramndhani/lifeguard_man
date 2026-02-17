@@ -52,6 +52,15 @@ img {
    REEL SYSTEM - True CSS Reel Strips
    ============================================ */
 
+/* Reel container - holds all columns side by side */
+.reel-container {
+  display: flex;
+  width: 100%;
+  padding: 10px;
+  gap: var(--col-gap, 8px);
+  box-sizing: border-box;
+}
+
 .reel-col {
   position: relative;
   flex: 1;
@@ -65,6 +74,7 @@ img {
   width: 100%;
   display: flex;
   flex-direction: column;
+  gap: var(--sym-gap, 0px);
   will-change: transform;
   backface-visibility: hidden;
   transform: translateZ(0);
@@ -129,6 +139,7 @@ img {
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: var(--sym-h, 88px);
   position: relative;
 }
 
@@ -144,7 +155,7 @@ img {
    ============================================ */
 
 @keyframes cascadeDrop {
-  0% { transform: translateY(calc(-100% * var(--drop-rows, 1))); }
+  0% { transform: translateY(calc((-100% - var(--sym-gap, 0px)) * var(--drop-rows, 1))); }
   70% { transform: translateY(5px); }
   85% { transform: translateY(-3px); }
   100% { transform: translateY(0); }
@@ -156,7 +167,7 @@ img {
 }
 
 @keyframes cascadeDropLandscape {
-  0% { transform: translateY(calc(-100% * var(--drop-rows, 1) - var(--gap-size, 0px) * var(--drop-rows, 1))); }
+  0% { transform: translateY(calc((-100% - var(--sym-gap, 0px)) * var(--drop-rows, 1))); }
   70% { transform: translateY(5px); }
   85% { transform: translateY(-3px); }
   100% { transform: translateY(0); }
